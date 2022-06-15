@@ -10,7 +10,7 @@
   },
   "keywords": [],
   "author": "Gutemberg (a.k.a StGuten)",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "axios": "^0.27.2",
     "dotenv": "^16.0.1",
