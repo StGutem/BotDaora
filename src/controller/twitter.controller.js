@@ -1,7 +1,8 @@
 import authClient from "../config/twitter.config.js";
 import clientBuilder from "../builder/twitter.builder.js";
+import {existsSync, readFileSync, writeFileSync} from "fs";
 
-const client = clientBuilder();
+let client = clientBuilder();
 
 const loginController = async (req, res)=>{
     const authUrl = authClient.generateAuthURL({
@@ -16,8 +17,8 @@ const callbackController = async (req,res)=>{
         const { code, state } = req.query;
         if (state !== process.env.STATE) return res.status(500).send("<h1>Segredo não é igual!</h1>");
         await authClient.requestAccessToken(code);
-        res.status(200).send("Bem vindo ao Twitter Auto Post");
-        console.log(authClient)
+        res.status(200).send("<h1>Bem vindo ao Twitter Auto Post</h1>");
+        writeFileSync("./.data/twitterSecret.json", JSON.stringify(authClient.token));
     } catch (error) {
         console.log(error);
     }
@@ -33,6 +34,11 @@ const revokeController = async (req,res) =>{
 }
 
 const tweetController = async (req,res) =>{
+    if(!existsSync("./.data/twitterSecret.json") || Object.keys(authClient).length === 0) {
+        const secret = JSON.parse(readFileSync("./.data/twitterSecret.json"));
+        authClient.token = secret;
+    }    
+
     const {tweet} = req.body;
     
     try {
@@ -41,8 +47,12 @@ const tweetController = async (req,res) =>{
         })
         res.send(filme);
     } catch (error) {
-        console.log("Erro no Tweet. Razão:\n", error);
-    }
+        if(error.status == 401) {
+            await authClient.refreshAccessToken();
+            writeFileSync("./.data/twitterSecret.json", JSON.stringify(authClient.token));
+            res.send("Token Refreshado");
+        }
+    } 
 }
 
 export {loginController, callbackController,revokeController,tweetController}
